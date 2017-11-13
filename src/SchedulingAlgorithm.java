@@ -2,39 +2,39 @@
 // the scheduling algorithm written by the user resides.
 // User modification should occur within the Run() function.
 
-import java.util.Timer;
 import java.util.Vector;
 import java.io.*;
 
 class SchedulingAlgorithm {
 
-    static Results run(int runtime, Vector<Process> processVector, Results result, int numberOfTickets) {
+    static Results run(int quantum, int runtime, Vector<Process> processVector, Results result, int numberOfTickets, String resultsFile) {
         int comptime = 0;
-        int currentProcess = 0;
-        int previousProcess = 0;
+        int currentProcess;
+        int previousProcess;
         int size = processVector.size();
         int completed = 0;
 
-        String resultsFile = "Summary-Processes";
-        result.schedulingType = "Batch (Nonpreemptive)"; //Proportional-Share ?
+        result.schedulingType = "Interactive (Preemptive)";
         result.schedulingName = "Lottery";
 
        try {
+
+           PrintStream out = new PrintStream(new FileOutputStream(resultsFile));
+
            Lottery lottery = new Lottery(numberOfTickets);
            lottery.run(processVector);
            currentProcess = lottery.getWinner();
 
-           PrintStream out = new PrintStream(new FileOutputStream(resultsFile));
-
            Process process = processVector.elementAt(currentProcess);
-           out.println("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")");
+           process.arrivaltime = comptime;
+           out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
 
           while (comptime < runtime) {
 
               // if current process is done
               if (process.cpudone == process.cputime) {
                   completed++;
-                  out.println("Process: " + currentProcess + " completed... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")");
+                  out.println(comptime + ":     process: " + currentProcess + " completed... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
 
                   // if all processes are done
                   if (completed == size) {
@@ -45,7 +45,7 @@ class SchedulingAlgorithm {
 
                   int i;
                   while (true) {
-                      lottery.run(processVector);
+                      lottery.run(processVector); // run lottery to find out which process should run next
                       i = lottery.getWinner();
                       process = processVector.elementAt(i);
                       if (process.cpudone < process.cputime) {
@@ -55,11 +55,14 @@ class SchedulingAlgorithm {
                   }
 
                   process = processVector.elementAt(currentProcess);
-                  out.println("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")");
+                  if (process.cpudone == 0) process.arrivaltime = comptime;
+                  out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
               }
+              //BLOCKING ->
+
 
               if (process.ioblocking == process.ionext) {
-                  out.println("Process: " + currentProcess + " I/O blocked... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")");
+                  out.println(comptime + ":     process: " + currentProcess + " I/O blocked... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
                   process.numblocked++;
                   process.ionext = 0;
                   previousProcess = currentProcess;
@@ -72,15 +75,31 @@ class SchedulingAlgorithm {
                   }
 
                   process = processVector.elementAt(currentProcess);
-                  out.println("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + ")");
+                  if (process.cpudone == 0) process.arrivaltime = comptime;
+                  out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
               }
+
               process.cpudone++;
 
               if (process.ioblocking > 0) {
-                process.ionext++;
+                  process.ionext++;
               }
               comptime++;
 
+              // periodic lottery run
+              System.out.println(currentProcess);
+              System.out.println(process.cpudone % quantum == 0);
+              if (process.cpudone % quantum == 0) {
+                  lottery.run(processVector);
+                  int i = lottery.getWinner();
+                  process = processVector.elementAt(i);
+                  if (process.cpudone < process.cputime) {
+                      if (process.cpudone == 0) process.arrivaltime = comptime;
+                      currentProcess = i;
+                  }
+                  process = processVector.elementAt(currentProcess);
+                  out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
+              }
           }
 
           out.close();

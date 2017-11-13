@@ -13,37 +13,33 @@ import java.util.*;
 public class Scheduling {
 
   private static int numberOfTickets = 0;
+  private static int quantum = 0;
   private static int processnum = 5;
   private static int meanDev = 1000;
   private static int standardDev = 100;
   private static int runtime = 1000;
   private static Vector<Process> processVector = new Vector<>();
   private static Results result = new Results("null","null",0);
-  private static String resultsFile = "Summary-Results";
+  private static String resultsFile;
+  private static String logFile;
 
   private static void Init(String file) {
     File f = new File(file);
     String line;
-    String tmp;
-    int cputime = 0;
-    int ioblocking = 0;
-    double X = 0.0;
+    int cputime;
+    int ioblocking;
+    double X;
 
     try {   
       //BufferedReader in = new BufferedReader(new FileReader(f));
       DataInputStream in = new DataInputStream(new FileInputStream(f));
       while ((line = in.readLine()) != null) {
-        if (line.startsWith("numtickets")) {
-          StringTokenizer st = new StringTokenizer(line);
-          st.nextToken();
-          numberOfTickets = Common.s2i(st.nextToken());
-        }
         if (line.startsWith("numprocess")) {
           StringTokenizer st = new StringTokenizer(line);
           st.nextToken();
           processnum = Common.s2i(st.nextToken());
         }
-        if (line.startsWith("run_time_average")) {
+        if (line.startsWith("meandev")) {
           StringTokenizer st = new StringTokenizer(line);
           st.nextToken();
           meanDev = Common.s2i(st.nextToken());
@@ -52,6 +48,11 @@ public class Scheduling {
           StringTokenizer st = new StringTokenizer(line);
           st.nextToken();
           standardDev = Common.s2i(st.nextToken());
+        }
+        if (line.startsWith("quantum")) {
+          StringTokenizer st = new StringTokenizer(line);
+          st.nextToken();
+          quantum = Common.s2i(st.nextToken());
         }
         if (line.startsWith("process")) {
           StringTokenizer st = new StringTokenizer(line);
@@ -65,6 +66,8 @@ public class Scheduling {
           cputime = (int) X + meanDev;
           String nTickets = st.nextToken();
           int numTickets = Common.s2i(nTickets);
+          numberOfTickets += numTickets;
+
           processVector.addElement(new Process(cputime, ioblocking, 0, 0, 0, numTickets));
         }
         if (line.startsWith("runtime")) {
@@ -72,27 +75,37 @@ public class Scheduling {
           st.nextToken();
           runtime = Common.s2i(st.nextToken());
         }
+        if (line.startsWith("summary_file")) {
+          StringTokenizer st = new StringTokenizer(line);
+          st.nextToken();
+          resultsFile = st.nextToken();
+        }
+        if (line.startsWith("log_file")) {
+          StringTokenizer st = new StringTokenizer(line);
+          st.nextToken();
+          logFile = st.nextToken();
+        }
       }
       in.close();
     } catch (IOException e) { /* Handle exceptions */ }
   }
 
   private static void debug() {
-    int i = 0;
+    int i;
 
     System.out.println("processnum " + processnum);
     System.out.println("meandevm " + meanDev);
     System.out.println("standdev " + standardDev);
     int size = processVector.size();
     for (i = 0; i < size; i++) {
-      Process process = (Process) processVector.elementAt(i);
+      Process process = processVector.elementAt(i);
       System.out.println("process " + i + " " + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.numblocked);
     }
     System.out.println("runtime " + runtime);
   }
 
   public static void main(String[] args) {
-    int i = 0;
+    int i;
 
     if (args.length != 1) {
       System.out.println("Usage: 'java Scheduling <INIT FILE>'");
@@ -122,7 +135,7 @@ public class Scheduling {
         i++;
       }
     }
-    result = SchedulingAlgorithm.run(runtime, processVector, result, numberOfTickets);
+    result = SchedulingAlgorithm.run(quantum, runtime, processVector, result, numberOfTickets, logFile);
     try {
       //BufferedWriter out = new BufferedWriter(new FileWriter(resultsFile));
       PrintStream out = new PrintStream(new FileOutputStream(resultsFile));
@@ -131,17 +144,20 @@ public class Scheduling {
       out.println("Simulation Run Time: " + result.compuTime);
       out.println("Mean: " + meanDev);
       out.println("Standard Deviation: " + standardDev);
-      out.println("Process #\tCPU Time\tIO Blocking\tCPU Completed\tCPU Blocked");
+      out.println("Quantum: " + quantum);
+      out.println("Process #\t\tArrival Time\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked");
       for (i = 0; i < processVector.size(); i++) {
-        Process process = (Process) processVector.elementAt(i);
+        Process process = processVector.elementAt(i);
         out.print(Integer.toString(i));
-        if (i < 100) { out.print("\t\t"); } else { out.print("\t"); }
+        if (i < 10) { out.print("\t\t\t\t"); }else if (i < 100) { out.print("\t\t\t"); } else { out.print("\t\t"); }
+        out.print(Integer.toString(process.arrivaltime));
+        if (i < 10) { out.print(" (ms)\t\t\t"); }else if (i < 100) { out.print(" (ms)\t\t"); } else { out.print("\t"); }
         out.print(Integer.toString(process.cputime));
-        if (process.cputime < 100) { out.print(" (ms)\t\t"); } else { out.print(" (ms)\t"); }
+        if (i < 10) { out.print(" (ms)\t\t\t\t"); }else if (i < 100) { out.print(" (ms)\t\t\t"); } else { out.print("\t\t"); }
         out.print(Integer.toString(process.ioblocking));
-        if (process.ioblocking < 100) { out.print(" (ms)\t\t"); } else { out.print(" (ms)\t"); }
+        if (i < 10) { out.print(" (ms)\t\t\t\t"); }else if (i < 100) { out.print(" (ms)\t\t\t"); } else { out.print("\t\t"); }
         out.print(Integer.toString(process.cpudone));
-        if (process.cpudone < 100) { out.print(" (ms)\t\t"); } else { out.print(" (ms)\t"); }
+        if (i < 10) { out.print("\t\t\t\t"); }else if (i < 100) { out.print("\t\t\t"); } else { out.print("\t\t"); }
         out.println(process.numblocked + " times");
       }
       out.close();

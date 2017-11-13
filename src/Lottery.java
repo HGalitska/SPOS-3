@@ -1,8 +1,7 @@
 import java.util.Random;
 import java.util.Vector;
-import java.util.concurrent.ThreadLocalRandom;
 
-public class Lottery{
+class Lottery{
     private int numberOfTickets = 0;
     private int winner = -1;
 
@@ -10,11 +9,11 @@ public class Lottery{
         numberOfTickets = n;
     }
 
-    public int getWinner() {
+    int getWinner() {
         return winner;
     }
 
-    public void run(Vector<Process> jobs) {
+    void run(Vector<Process> jobs) {
         Random rand = new Random();
         int ticket = rand.nextInt(numberOfTickets) + 1;
         int counter = 0;
@@ -28,3 +27,5 @@ public class Lottery{
         }
     }
 }
+
+//blocking, optimize lottery
