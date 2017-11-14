@@ -28,7 +28,7 @@ class SchedulingAlgorithm {
             Process process = processVector.elementAt(currentProcess);
             process.arrivaltime = comptime;
             out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
-            
+
             while (comptime < runtime) {
 
                 if (process.cpudone == process.cputime) {
@@ -90,7 +90,7 @@ class SchedulingAlgorithm {
                 comptime++;
 
                 // periodic lottery run
-                if (comptime % quantum == 0) {
+                if (process.cpudone % quantum == 0) {
                     int i;
                     while (true) {
                         lottery.run(processVector);
