@@ -18,6 +18,7 @@ public class Scheduling {
   private static int meanDev = 1000;
   private static int standardDev = 100;
   private static int runtime = 1000;
+  private static int totalTickets = 0;
 
   private static Results result = new Results("null","null",0);
   private static String resultsFile;
@@ -73,10 +74,10 @@ public class Scheduling {
                   cputime = (int) X + meanDev;
 
                   String nTickets = st.nextToken();
-                  int numTickets = Common.s2i(nTickets);
-                  numberOfTickets += numTickets;
+                  numberOfTickets = Common.s2i(nTickets);
+                  totalTickets += numberOfTickets;
 
-                  processVector.addElement(new Process(cputime, ioblocking, 0, 0, 0, numTickets));
+                  processVector.addElement(new Process(cputime, ioblocking, 0, 0, 0,0, numberOfTickets));
               }
               if (line.startsWith("runtime")) {
                   StringTokenizer st = new StringTokenizer(line);
@@ -147,12 +148,12 @@ public class Scheduling {
               X = X * standardDev;
               int cputime = (int) X + meanDev;
 
-              processVector.addElement(new Process(cputime,i*100,0,0,0, 1));
+              processVector.addElement(new Process(cputime,i*100,0,0,0,0, numberOfTickets));
               i++;
           }
       }
 
-      result = SchedulingAlgorithm.run(quantum, runtime, processVector, result, numberOfTickets, logFile);
+      result = SchedulingAlgorithm.run(quantum, runtime, processVector, result, totalTickets, logFile);
 
       try {
 
@@ -165,6 +166,7 @@ public class Scheduling {
           out.println("Quantum: " + quantum);
           out.println("Process #\t\tArrival Time\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked");
 
+          System.out.println(processVector.size());
           for (i = 0; i < processVector.size(); i++) {
               Process process = processVector.elementAt(i);
 

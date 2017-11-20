@@ -7,9 +7,13 @@ import java.io.*;
 
 class SchedulingAlgorithm {
 
-    static Results run(int quantum, int runtime, Vector<Process> processVector, Results result, int numberOfTickets, String resultsFile) {
+    static Results run(int quantum, int runtime, Vector<Process> processVec, Results result, int numberOfTickets, String resultsFile) {
+
         result.schedulingType = "Interactive (Preemptive)";
         result.schedulingName = "Lottery";
+
+        Vector<Process> processVector = new Vector<>();
+        processVector = processVec; // local list of processes, to prevent changes in global parameter
 
         int comptime = 0;
         int currentProcess;
@@ -21,6 +25,7 @@ class SchedulingAlgorithm {
 
             PrintStream out = new PrintStream(new FileOutputStream(resultsFile));
 
+            // run first lottery on start
             Lottery lottery = new Lottery(numberOfTickets);
             lottery.run(processVector);
             currentProcess = lottery.getWinner();
@@ -31,18 +36,24 @@ class SchedulingAlgorithm {
 
             while (comptime < runtime) {
 
+                // if process has completed
                 if (process.cpudone == process.cputime) {
 
                     completed++;
                     out.println(comptime + ":     process: " + currentProcess + " completed... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
 
-                      // if all processes are done
+                    // remove process and update number of tickets
+                    processVector.remove(process);
+                    lottery.updateNumber(lottery.getNumberOfTickets() - process.numTickets);
+
+                    // if all processes are done
                     if (completed == size) {
                         result.compuTime = comptime;
                         out.close();
                         return result;
                     }
 
+                    //choose next process in lottery
                     int i;
                     while (true) {
                         lottery.run(processVector); // run lottery to find out which process should run next
@@ -62,43 +73,52 @@ class SchedulingAlgorithm {
                 if (process.ioblocking == process.ionext) {
 
                     out.println(comptime + ":     process: " + currentProcess + " I/O blocked... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
+
                     process.numblocked++;
                     process.ionext = 0;
+                    process.lotnext = 0;
                     previousProcess = currentProcess;
 
-                    int i;
-                    while (true) {
-                        lottery.run(processVector);
-                        i = lottery.getWinner();
-                        process = processVector.elementAt(i);
-                        if (process.cpudone < process.cputime && previousProcess != i) {
-                            currentProcess = i;
-                            break;
-                        }
-                    }
+                    // if process is not the only left, choose next in lottery
+                    if (processVector.size() > 1) {
 
-                    process = processVector.elementAt(currentProcess);
-                    if (process.cpudone == 0) process.arrivaltime = comptime;
-                    out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
+                        int i;
+                        while (true) {
+                            lottery.run(processVector);
+                            i = lottery.getWinner();
+                            process = processVector.elementAt(i);
+                            if (process.cpudone < process.cputime && previousProcess != i) {
+                                currentProcess = i;
+                                break;
+                            }
+                        }
+
+                        process = processVector.elementAt(currentProcess);
+                        if (process.cpudone == 0) process.arrivaltime = comptime;
+                        out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
+                    }
                 }
 
-                process.cpudone++;
                 if (process.ioblocking > 0) {
                     process.ionext++;
                 }
 
-                comptime++;
-
                 // periodic lottery run
-                if (process.cpudone % quantum == 0) {
-                    int i;
-                    while (true) {
-                        lottery.run(processVector);
-                        i = lottery.getWinner();
-                        process = processVector.elementAt(i);
-                        if (process.cpudone < process.cputime) {
-                            currentProcess = i;
-                            break;
+                if (process.lotnext == quantum){
+                    process.lotnext = 0;
+
+                    if (processVector.size() == 1) currentProcess = 0; // if only one process left, start it
+
+                    else {
+                        int i;
+                        while (true) {
+                            lottery.run(processVector);
+                            i = lottery.getWinner();
+                            process = processVector.elementAt(i);
+                            if (process.cpudone < process.cputime) {
+                                currentProcess = i;
+                                break;
+                            }
                         }
                     }
 
@@ -106,13 +126,15 @@ class SchedulingAlgorithm {
                     if (process.cpudone == 0) process.arrivaltime = comptime;
                     out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
                 }
-                System.out.println(comptime + "<" + runtime);
+                process.cpudone++;
+                process.lotnext++;
+                comptime++;
             }
 
            out.close();
+            System.out.println(processVector.size());
 
         } catch (IOException e) { /* Handle exceptions */ }
-
         result.compuTime = comptime;
         return result;
     }

@@ -13,6 +13,14 @@ class Lottery{
         return winner;
     }
 
+    int getNumberOfTickets(){
+        return numberOfTickets;
+    }
+
+    void updateNumber(int newNumberOfTickets){
+        numberOfTickets = newNumberOfTickets;
+    }
+
     void run(Vector<Process> jobs) {
         Random rand = new Random();
         int ticket = rand.nextInt(numberOfTickets) + 1;
