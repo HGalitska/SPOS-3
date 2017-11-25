@@ -166,7 +166,6 @@ public class Scheduling {
           out.println("Quantum: " + quantum);
           out.println("Process #\t\tArrival Time\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked");
 
-          System.out.println(processVector.size());
           for (i = 0; i < processVector.size(); i++) {
               Process process = processVector.elementAt(i);
 

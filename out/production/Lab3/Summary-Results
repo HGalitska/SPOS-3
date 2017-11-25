@@ -1,7 +1,10 @@
 Scheduling Type: Interactive (Preemptive)
 Scheduling Name: Lottery
-Simulation Run Time: 723
+Simulation Run Time: 3945
 Mean: 1100
 Standard Deviation: 510
 Quantum: 10
 Process #		Arrival Time		CPU Time		IO Blocking		CPU Completed		CPU Blocked
+0				20 (ms)			1315 (ms)				100 (ms)				1315				13 times
+1				30 (ms)			1315 (ms)				500 (ms)				1315				2 times
+2				0 (ms)			1315 (ms)				30 (ms)				1315				12 times

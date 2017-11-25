@@ -12,14 +12,14 @@ class SchedulingAlgorithm {
         result.schedulingType = "Interactive (Preemptive)";
         result.schedulingName = "Lottery";
 
-        Vector<Process> processVector = new Vector<>();
-        processVector = processVec; // local list of processes, to prevent changes in global parameter
+        Vector<Process> processVector = (Vector<Process>) processVec.clone();
+
 
         int comptime = 0;
         int currentProcess;
-        int previousProcess;
         int size = processVector.size();
         int completed = 0; // number of processes that finished with their work
+        int blockedProcess = -1; // number of process that is being blocked during current iteration
 
         try {
 
@@ -35,6 +35,7 @@ class SchedulingAlgorithm {
             out.println(comptime + ":     process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
 
             while (comptime < runtime) {
+                blockedProcess = -1;
 
                 // if process has completed
                 if (process.cpudone == process.cputime) {
@@ -74,10 +75,10 @@ class SchedulingAlgorithm {
 
                     out.println(comptime + ":     process: " + currentProcess + " I/O blocked... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.arrivaltime + ")");
 
+                    blockedProcess = currentProcess;
                     process.numblocked++;
                     process.ionext = 0;
                     process.lotnext = 0;
-                    previousProcess = currentProcess;
 
                     // if process is not the only left, choose next in lottery
                     if (processVector.size() > 1) {
@@ -87,7 +88,7 @@ class SchedulingAlgorithm {
                             lottery.run(processVector);
                             i = lottery.getWinner();
                             process = processVector.elementAt(i);
-                            if (process.cpudone < process.cputime && previousProcess != i) {
+                            if (process.cpudone < process.cputime && i != blockedProcess) {
                                 currentProcess = i;
                                 break;
                             }
@@ -115,7 +116,7 @@ class SchedulingAlgorithm {
                             lottery.run(processVector);
                             i = lottery.getWinner();
                             process = processVector.elementAt(i);
-                            if (process.cpudone < process.cputime) {
+                            if (process.cpudone < process.cputime && i != blockedProcess) {
                                 currentProcess = i;
                                 break;
                             }
